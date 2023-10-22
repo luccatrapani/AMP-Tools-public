@@ -42,58 +42,6 @@ Eigen::Vector2d linkTools::getJointLocation(const ManipulatorState& state, uint3
 }
 
 ManipulatorState linkTools::getConfigurationFromIK(const Eigen::Vector2d& end_effector_location)const{
-    // This is not complete
-
-    std::vector<double> linkLengths =  getLinkLengths();
-    Eigen::Vector2d baseLocation =  getBaseLocation();
-    int numLinks = linkLengths.size();
-
-    double a1 = linkLengths[0];
-    double a2 = linkLengths[1];
-
-    double x = end_effector_location[0]; double y = end_effector_location[1];
-
-    double x2, y2, phi, a3;
-    if (numLinks > 2){
-        phi = std::atan(y/x);
-        a3 = linkLengths[2];
-        x2 = x - a3*std::cos(phi);
-        y2 = y - a3*std::sin(phi);
-    } else{
-        x2 = x;
-        y2 = y;
-    }
-
-    double ct2 = (x2*x2 + y2*y2 - a1*a1 - a2*a2)/(2*a1*a2);
-    double st2 = std::sqrt(1-ct2*ct2);
-    double t2 = std::atan2(st2, ct2);
-
-    
-    double D = (a1 + a2*std::cos(t2))*(a1 + a2*std::cos(t2)) + (a2*std::sin(t2))*(a2*std::sin(t2));
-    double ct1 = (x*(a1 + a2*std::cos(t2)) - y*(a2*std::sin(t2))) / D;
-    double st1 = (y*(a1 + a2*std::cos(t2)) - x*(a2*std::sin(t2))) / D;
-    double t1 = std::atan2(st1,ct1);
-
-
-    Eigen::VectorXd configuration(0);
-    if (numLinks>2){
-        double t3 = phi - t1 - t2;
-
-        configuration.resize(3);
-        configuration[2] = t3;
-    }else{
-        configuration.resize(2);
-    }
-    configuration[1] = t2;
-    configuration[0] = t1;
-
-    return configuration;
-
-
-}
-
-
-ManipulatorState2Link linkTools::getConfigurationFromIK2Link(const Eigen::Vector2d& end_effector_location){
     double x = end_effector_location[0]; double y = end_effector_location[1];
     std::vector<double> linkLengths =  getLinkLengths();
     Eigen::Vector2d baseLocation =  getBaseLocation();

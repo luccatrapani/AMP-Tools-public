@@ -10,8 +10,6 @@ class linkTools : public LinkManipulator2D{
 
         virtual ManipulatorState getConfigurationFromIK(const Eigen::Vector2d& end_effector_location) const override;
 
-        ManipulatorState2Link getConfigurationFromIK2Link(const Eigen::Vector2d& end_effector_location);
-
 };
 
 
