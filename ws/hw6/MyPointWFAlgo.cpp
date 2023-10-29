@@ -7,8 +7,8 @@ std::unique_ptr<amp::GridCSpace2D> amp::MyPointWFAlgo::constructDiscretizedWorks
     //Define discretizations and cell values
     int x0Elements = 100;  int x1Elements = 100;
 
-    double x0StepSize =  (environment.x_max - environment.x_max)/x0Elements;  
-    double x1StepSize =  (environment.y_max - environment.y_max)/x1Elements; 
+    double x0StepSize =  (environment.x_max - environment.x_min)/x0Elements;  
+    double x1StepSize =  (environment.y_max - environment.y_min)/x1Elements; 
 
     double x0Min = environment.x_min; double x1Min = environment.y_min;
     double x0Max = environment.x_max-x0StepSize; double x1Max = environment.y_max-x1StepSize;
@@ -57,132 +57,129 @@ amp::Path2D amp::MyPointWFAlgo::planInCSpace(const Eigen::Vector2d& q_init, cons
     int iInit = initInd.first; int jInit = initInd.second;
     int iGoal = goalInd.first; int jGoal = goalInd.second;
 
-    //Start path
-    path.waypoints.push_back(q_goal);
+    // Grow wavefront
+    amp::DenseArray2D wavefront(x0Elements, x1Elements, 0);
+    // Put values in to check boundaries easily
+    std::vector<double> iStep{ 1, -1, 0, 0};
+    std::vector<double> jStep{ 0, 0, 1, -1};
+    bool waveDone = false;
+    bool breakLoops = false;
+    int cellsFilled = 1;
+    wavefront(iGoal, jGoal) = 2;
 
-    bool goalReached = false;
+    int force = 0;
     
-    int i = iGoal; int j = jGoal;
-    Eigen::Vector2d pos = q_goal;
-
-    while(!goalReached){
-        // Clear my directions
-        bool goUp = false; bool goDown = false; bool goRight = false; bool goLeft = false;
-
-        //Find direction to start from current point
-        Eigen::Vector2d vec2Start = pos - q_init;
-        Eigen::Vector2d unitVec2Start = vec2Start/vec2Start.norm();
-
-        if (std::abs(unitVec2Start[0]) > std::abs(unitVec2Start[1]) && unitVec2Start[0] > 0){
-            goRight = true;
-        } else if (std::abs(unitVec2Start[0]) > std::abs(unitVec2Start[1]) && unitVec2Start[0] < 0) {
-            goLeft = true;
-        } else if (std::abs(unitVec2Start[0]) < std::abs(unitVec2Start[1]) && unitVec2Start[1] > 0) {
-            goUp = true;
-        } else if (std::abs(unitVec2Start[0]) < std::abs(unitVec2Start[1]) && unitVec2Start[1] < 0){
-            goDown = true;
-        } else {
-            std::cout << "Direction unclear" << std::endl;
-            return path;
-        }
-
-        bool directionFound = false;
-        int count = 0;
-        Eigen::Vector2d step;
-
-        while (count < 4 && !directionFound) {
-            // If can go direction I want, try other grid spaces in CCW order
-            if (goRight){
-                if (((i+1)<=iMax) && ((i+1)>=iMin)) {
-                    if (!grid_cspace(i+1, j)){
-                        step << x0Step, 0;
-                        directionFound = true;
-                    } else {
-                        goRight = false;
-                        goUp = true; 
-                        count++;
+    while (!waveDone) {
+        //Start at bottom left, scan each row
+        for (int i = 0; i<x0Elements; i++){
+            for (int j = 0; j<x1Elements; j++){
+                // Check each boundary
+                int minBoundVal = 1000000;
+                bool addCell = false;
+                if (wavefront(i, j)==0){
+                    for (int k = 0; k<4; k++){
+                        // If boundary is wall, ignore
+                        int iBound = i+iStep[k]; int jBound = j+jStep[k];
+                        if ((iBound>x0Elements-1) || (jBound>x1Elements-1) || iBound<0 || jBound<0){
+                            //Outside of wall
+                            //std::cout << "Out of wall" << std::endl;
+                            continue;
+                        } else if (grid_cspace(iBound, jBound)) {
+                            //Boundary in obstacle
+                            //std::cout << "Boundary" << std::endl;
+                            if (wavefront(iBound, jBound)!=1) {
+                                // This is just for stop condition
+                                wavefront(iBound, jBound) = 1;
+                                cellsFilled++;
+                            }
+                            continue;
+                        } else if (wavefront(iBound, jBound)>1) {
+                            // Boundary is ok, put its value into the minimum cell value if necessary
+                            //std::cout << "Found goal cell" << std::endl;
+                            if (wavefront(iBound, jBound) < minBoundVal) {
+                                minBoundVal = wavefront(iBound, jBound);
+                            }
+                            addCell = true;
+                        } else {
+                            // No nodes around have been checked, just keep going
+                            //std::cout << iBound << "   " << jBound << "  :  " << wavefront(iBound, jBound) << std::endl;
+                            continue;
+                        }
                     }
+
                 } else {
-                    goRight = false;
-                    goUp = true; 
-                    count++;
+                    continue;
                 }
-            } else if (goUp){
-                if (((j+1)<=jMax) && ((j+1)>=jMin)) {
-                    if (!grid_cspace(i, j+1)){
-                        step << 0, x1Step;
-                        directionFound = true;
-                    } else {
-                        goUp = false;
-                        goLeft = true; 
-                        count++;
+
+                if (addCell) {
+                    wavefront(i, j) = minBoundVal + 1;
+                    //std::cout << "Filled a cell" << std::endl;
+                    if (i==iInit && j==jInit){
+                        // Init has been reached
+                        std::cout << "Path found" << std::endl;
+                        waveDone = true;
+                        breakLoops = true;
+                        cellsFilled++;
                     }
-                } else {
-                    goUp = false;
-                    goLeft = true; 
-                    count++;
                 }
-            } else if (goLeft){
-                if (((i-1)<=iMax) && ((i-1)>=iMin)) {
-                    if (!grid_cspace(i-1, j)){
-                        step << -x0Step, 0;
-                        directionFound = true;
-                    } else {
-                        goLeft = false;
-                        goDown = true; 
-                        count++;
-                    }
-                } else {
-                    goLeft = false;
-                    goDown = true; 
-                    count++;
-                }
-            } else if (goDown){
-                if (((j-1)<=jMax) && ((j-1)>=jMin)) {
-                    if (!grid_cspace(i, j-1)){
-                        step << 0, -x1Step;
-                        directionFound = true;
-                    } else {
-                        goDown = false;
-                        goRight = true; 
-                        count++;
-                    }
-                } else {
-                    goDown = false;
-                    goRight = true; 
-                    count++;
-                }
+
+                if (breakLoops) {break;};
+
             }
+            if (breakLoops) {break;};
         }
 
-        // Check to make sure algorithm did not fail
-        if (!directionFound) {
-            std::cout << "No path found!!!" << std::endl;
+        /*
+        if (cellsFilled > (x0Elements*x1Elements)) {
+            std::cout << "No path found" << std::endl;
             return path;
         }
+        */
 
-        // Take a step
-        pos = pos + step;
-
-        // Check indices of pos
-        std::pair currentInd = grid_cspace.getCellFromPoint(pos[0], pos[1]);
-        i = currentInd.first; j = currentInd.second;
-
-        // Add my step to the path
-        path.waypoints.push_back(pos);
-
-        // Check for start
-        if (i==iInit && j==jInit) {
-            //start reached
-            path.waypoints.push_back(q_init);
-            goalReached == true;
+        force++;
+        if (force>10000) {
+            return path;
         }
-
 
     }
 
-    // Flip path vector because I start at q_goal
-    std::reverse(path.waypoints.begin(), path.waypoints.end());
+    int iNow = iInit; int jNow = jInit;
+
+    force = 0;
+
+    // Start path
+    path.waypoints.push_back(q_init);
+
+    bool goalReached = false;
+    Eigen::Vector2d pos = q_init;
+
+    while (!goalReached){
+        int valNow = wavefront(iNow, jNow);
+        for (int k = 0; k<4; k++){
+            int iBound = iNow+iStep[k];
+            int jBound = jNow+jStep[k];
+
+            if (wavefront(iBound, jBound) == valNow-1) {
+                //step in that direction
+                Eigen::Vector2d step(iStep[k]*x0Step, jStep[k]*x1Step);
+                pos = pos + step;
+
+                path.waypoints.push_back(pos);
+                if (iBound==iGoal && jBound==jGoal){
+                    path.waypoints.push_back(q_goal);
+                    goalReached = true;
+                    break;
+                }
+                iNow = iBound;
+                jNow = jBound;
+                break;
+            }
+
+        }
+
+        if (force>5000) { return path;};
+        force++;
+    }
 
     return path;
 

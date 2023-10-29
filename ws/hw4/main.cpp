@@ -81,6 +81,6 @@ int main(int argc, char** argv) {
     //Visualizer::showFigures();
 
     // Grade method
-    //amp::HW4::grade<linkTools>(ctorAlgo, "lucca.trapani@colorado.edu", argc, argv);
+    amp::HW4::grade<linkTools>(ctorAlgo, "lucca.trapani@colorado.edu", argc, argv);
     return 0;
 }

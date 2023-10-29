@@ -11,8 +11,8 @@ std::pair<std::size_t, std::size_t> amp::MyGridCSpace::getCellFromPoint(double x
     double x0Steps = (x0MinMax.second - x0MinMax.first)/cSpaceSize.first;
     double x1Steps = (x1MinMax.second - x1MinMax.first)/cSpaceSize.second;
 
-    int i = std::floor(x0/x0Steps);
-    int j = std::floor(x1/x1Steps);
+    int i = std::floor((x0+std::abs(x0MinMax.first))/x0Steps);
+    int j = std::floor((x1+std::abs(x1MinMax.first))/x1Steps);
 
     std::pair<int, int> indices = {i, j};
 

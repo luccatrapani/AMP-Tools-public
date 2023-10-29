@@ -50,8 +50,8 @@ ManipulatorState linkTools::getConfigurationFromIK(const Eigen::Vector2d& end_ef
     double ct2 = (1/(2*a1*a2))*((x*x + y*y) - (a1*a1 + a2*a2));
     double st2 = std::sqrt(1 - ct2*ct2);
 
-    double ct1 = (1/(x*x + y*y))*(x*(a1 + a2*ct2) + y*a2*sqrt(1-ct2*ct2));
-    double st1 = (1/(x*x + y*y))*(y*(a1 + a2*ct2) - x*a2*sqrt(1-ct2*ct2));
+    double ct1 = (1/(x*x + y*y))*(x*(a1 + a2*ct2) - y*a2*sqrt(1-ct2*ct2));
+    double st1 = (1/(x*x + y*y))*(y*(a1 + a2*ct2) + x*a2*sqrt(1-ct2*ct2));
 
     double theta1 = std::atan2(st1, ct1); double theta2 = std::atan2(st2, ct2);
 
