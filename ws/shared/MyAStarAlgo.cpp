@@ -12,6 +12,7 @@ amp::MyAStarAlgo::GraphSearchResult amp::MyAStarAlgo::search(const amp::Shortest
 
     int iterations = 0;
 
+
     while (!goalReached) {
         amp::Node nBest = priorityList[0].currentNode;
         // Check if goal is reached
@@ -25,6 +26,7 @@ amp::MyAStarAlgo::GraphSearchResult amp::MyAStarAlgo::search(const amp::Shortest
         int lengthPriority = priorityList.size();
         // Get children of top of priority
         std::vector<amp::Node> childNodes = graph.children(nBest);
+
         std::vector<double> childEdges = graph.outgoingEdges(nBest);
         int lengthChildren = childNodes.size();
 
@@ -36,7 +38,7 @@ amp::MyAStarAlgo::GraphSearchResult amp::MyAStarAlgo::search(const amp::Shortest
                 if (childNodes[i] == priorityList[j].currentNode) {nodeExist = true; existInd = j;};
             }
 
-            int pri = g_n + childEdges[i] + heuristic(childNodes[i]);
+            int pri = g_n + childEdges[i]; //+ heuristic(childNodes[i]);
             int g_child = g_n + childEdges[i];
 
             if (!nodeExist) {
@@ -53,6 +55,7 @@ amp::MyAStarAlgo::GraphSearchResult amp::MyAStarAlgo::search(const amp::Shortest
         priorityList.erase(priorityList.begin());
 
         std::sort(priorityList.begin(), priorityList.end(), cmp);
+
         iterations++;
         if (iterations > 1000) { return GraphSearchResult();};
     }
@@ -81,6 +84,7 @@ amp::MyAStarAlgo::GraphSearchResult amp::MyAStarAlgo::search(const amp::Shortest
             }
 
         }
+
 
         r++;
         if (r > 1000) {std::cout << "Broke" << std::endl; return GraphSearchResult();};

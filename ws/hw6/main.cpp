@@ -53,18 +53,20 @@ int main(int argc, char** argv) {
     // Exercise 3
     MyAStarAlgo aStarAlgo;
     ShortestPathProblem problem3 = HW6::getEx3SPP();
-    LookupSearchHeuristic heuristic3 = HW6::getEx3Heuristic();
+    (*problem3.graph).print();
+    std::cout << problem3.init_node << "  " << problem3.goal_node << std::endl;
+    //LookupSearchHeuristic heuristic3 = HW6::getEx3Heuristic();
     //bool h = problem3.(*graph).isReversible();
-    MyAStarAlgo::GraphSearchResult res = aStarAlgo.search(problem3, heuristic3);
-    HW6::checkGraphSearchResult(res, problem3, heuristic3);
+    //MyAStarAlgo::GraphSearchResult res = aStarAlgo.search(problem3, heuristic3);
+    //HW6::checkGraphSearchResult(res, problem3, heuristic3);
 
 
 
 
     //Visualizer::showFigures();
-    MyPointWFAlgo pointWFalgo;
-    MyManipWFAlgo manipWFalgo;
-    HW6::grade(pointWFalgo, manipWFalgo, aStarAlgo, "lucca.trapani@colorado.edu", argc, argv);
+    //MyPointWFAlgo pointWFalgo;
+   // MyManipWFAlgo manipWFalgo;
+    //HW6::grade(pointWFalgo, manipWFalgo, aStarAlgo, "lucca.trapani@colorado.edu", argc, argv);
     return 0;
 
 }

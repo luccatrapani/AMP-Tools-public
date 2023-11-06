@@ -1,4 +1,5 @@
 #include "AMPCore.h"
+#include "hw/HW7.h"
 
 int main() {
     amp::RNG::seed(amp::RNG::randiUnbounded());
@@ -52,6 +53,8 @@ int main() {
     std::shared_ptr<amp::Graph<double>> random_graph = amp::GraphTools::generateRandomGraphDouble(10, 0.0, 1.0, 3);
     NEW_LINE;
     random_graph->print("Random Graph");
+
+    amp::HW7::hint();
 
     return 0;
 }
