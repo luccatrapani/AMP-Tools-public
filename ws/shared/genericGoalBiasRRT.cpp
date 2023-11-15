@@ -1,5 +1,7 @@
 #include "genericGoalBiasRRT.h"
 
+bool inGoal(Eigen::VectorXd& q_i, Eigen::VectorXd& q_goal, int N, double e);
+
 amp::genericGoalBiasRRT::genericGoalBiasRRT(int n, double r, double p, double e) : 
     m_n(n), m_r(r), m_p(p), m_e(e) {}
 
@@ -14,40 +16,37 @@ const Eigen::VectorXd& goal_state, const std::unique_ptr<amp::ConfigurationSpace
 
     //Get dimensionality
     int N = (*cspace).dimension();
+    std::cout << "Dimension:  " << N << std::endl;
+
 
     int n = m_n; double r = m_r; double p = m_p; double e = m_e;    
 
     // Start at init_node
-    bool goalReached =  false;
+    bool RRTPassed =  false;
     amp::Graph<double> tree;
     std::map<amp::Node, Eigen::VectorXd> nodes;
     amp::Node initNode = 0;
     nodes[initNode] = init_state;
+    Eigen::VectorXd q_goal = goal_state;
 
     int nodeNum = 1;
 
-    int walkDis = 5;
-
+    int walkDis = 20;
 
     for (int i = 0; i<n; i++) {
+
         Eigen::VectorXd q_rand(N);
 
-        for (int j = 0; j<N; j++) {
-            bool acceptSample = false;
-            double sample;
-            while (!acceptSample) {
-                sample = amp::RNG::nsrand(goal_state[j], 1-p);
-
-                if (sample > lowerBounds[j] && sample < upperBounds[j]) {
-                    acceptSample = true;
-                }
+        double pSample = amp::RNG::srandd(0, 1);
+        if (pSample <= p) {
+            q_rand = goal_state;
+        } else {
+            for (int j = 0; j<N; j++) {
+                q_rand[j] = amp::RNG::srandd(lowerBounds[j], upperBounds[j]);
             }
-            q_rand[j] = sample;
         }
 
-        // Check if sample is in collision
-        bool collision = (*cspace).inCollision(q_rand);
-        if (collision) {continue;};
+        
 
         // If not in collision find nearest node
         double nodeDistMin = 10000;
@@ -66,25 +65,36 @@ const Eigen::VectorXd& goal_state, const std::unique_ptr<amp::ConfigurationSpace
             }
         }
 
-       
+        
 
+       
         // Now get q_new
         Eigen::VectorXd q_new = q_near + r*walkDir;
+        // Check if sample is in collision
+        bool collision = (*cspace).inCollision(q_new);
+        if (collision) {continue;};
+        
 
         // Now walk to q_new and make sure collision free
         collision = false;
 
-        for (int k = 1; k<walkDis; k++) {
+        for (int k = 0; k<=walkDis; k++) {
             Eigen::VectorXd walkLoc = (1 - k/walkDis)*q_near + (k/walkDis)*q_new;
             collision = (*cspace).inCollision(walkLoc);
-            if (collision) {break;};
+            if (collision) {/*std::cout << "WALK " << i << std::endl; std::cout << walkLoc << std::endl;*/ break;};
             
         }
 
-        
+        //std::cout << "i :  " << i << "   norm:   " << nodeDist << std::endl;
 
         if (collision) {
+            //std::cout << "Collision " << std::endl;
+            /*std::cout << "Collide q_near : " << std::endl;
+            std::cout << q_near << std::endl;
+            std::cout << "q_rand" << std::endl;
+            std::cout << q_rand << std::endl;*/
             continue;
+            
         } else {
             //Make connection
             tree.connect(node_near, nodeNum, nodeDist);
@@ -93,21 +103,32 @@ const Eigen::VectorXd& goal_state, const std::unique_ptr<amp::ConfigurationSpace
 
             Eigen::VectorXd vec2Goal = goal_state - q_new;
 
-            if (vec2Goal.norm()< e) {
+            //std::cout << "i:   " << i << "   norm goal:   " << vec2Goal.norm() << std::endl;
+            bool goalReached = inGoal(q_new, q_goal, N, e);
+            if (goalReached) {
                 tree.connect(nodeNum-1, nodeNum, vec2Goal.norm());
                 nodes[nodeNum] = goal_state;
                 std::cout << "Connected to goal" << std::endl;
+                RRTPassed = true;
                 break;
             }
 
 
         }
 
+
+    }
+
+    if (!RRTPassed) {
+        std::cout << "RRT Did Not Return A Result" << std::endl;
+        path.valid = false;
+        return path;
     }
 
     
-
+    amp::Visualizer::showFigures();
     amp::Node goalNode = nodeNum;
+    m_treeSize = nodeNum+1;
 
     // Now ask AStar to find me a path
     amp::MyAStarAlgo aStarAlgo;
@@ -119,8 +140,14 @@ const Eigen::VectorXd& goal_state, const std::unique_ptr<amp::ConfigurationSpace
     PRMProblem.goal_node = goalNode;
     
     amp::SearchHeuristic heuristic;
+    
     amp::AStar::GraphSearchResult result = aStarAlgo.search(PRMProblem, heuristic);
-
+    
+    if (!result.success) {
+        std::cout << "A Star Could not give a solution" << std::endl;
+        path.valid = false;
+        return path;
+    }
     
     
     //Now pull out the points
@@ -130,10 +157,41 @@ const Eigen::VectorXd& goal_state, const std::unique_ptr<amp::ConfigurationSpace
     for (int i = 0; i<pathSize; i++){
         path.waypoints.push_back(nodes[node_path[i]]);
     }
+    path.valid = true;
 
     return path;
 
 
 
+
+}
+
+bool inGoal(Eigen::VectorXd& q_i, Eigen::VectorXd& q_goal, int N, double e){
+    bool goalReached = false;
+    Eigen::VectorXd vec2Goal = q_i - q_goal;
+
+    if (vec2Goal.norm() < e){
+        goalReached = true;
+    } else {
+        bool inGoal = true;
+        for (int j = 0; j<N; j+=2){
+            Eigen::Vector2d q_iInd = {q_i[j], q_i[j+1]};
+            Eigen::Vector2d q_GoalInd = {q_goal[j], q_goal[j+1]};
+            Eigen::Vector2d vec2GoalInd = q_iInd - q_GoalInd;
+
+            /*std::cout << "q_i :  " << std::endl;
+            std::cout << q_iInd << std::endl;
+            std::cout << "q_goal " << std::endl;
+            std::cout << q_GoalInd << std::endl;*/
+
+            if (vec2GoalInd.norm() >= e){
+                inGoal = false;
+            }
+        }
+
+        goalReached = inGoal;
+    }
+
+    return goalReached;
 
 }

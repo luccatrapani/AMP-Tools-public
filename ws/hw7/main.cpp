@@ -26,8 +26,6 @@ int main(int argc, char** argv) {
     Path2D path2 = algo.plan(problem1);
     Visualizer::makeFigure(problem1, path2);
 
-    bool woah = HW7::generateAndCheck(algo);
-
 
     Visualizer::showFigures();
 

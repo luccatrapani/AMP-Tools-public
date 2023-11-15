@@ -9,6 +9,7 @@ namespace amp{
         amp::Path planND(const Eigen::VectorXd& init_state, 
             const Eigen::VectorXd& goal_state, const std::unique_ptr<amp::ConfigurationSpace>& cspace);
 
+        int m_treeSize = 0;
 
         private: 
         int m_n; 

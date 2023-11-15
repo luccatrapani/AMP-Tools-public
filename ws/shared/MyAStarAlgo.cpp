@@ -14,6 +14,10 @@ amp::MyAStarAlgo::GraphSearchResult amp::MyAStarAlgo::search(const amp::Shortest
 
 
     while (!goalReached) {
+        if(priorityList.size() == 0) {
+            std::cout << "AStar No Solution" << std::endl;
+            return GraphSearchResult();
+        }
         amp::Node nBest = priorityList[0].currentNode;
         // Check if goal is reached
         if (nBest == problem.goal_node) {
@@ -57,7 +61,7 @@ amp::MyAStarAlgo::GraphSearchResult amp::MyAStarAlgo::search(const amp::Shortest
         std::sort(priorityList.begin(), priorityList.end(), cmp);
 
         iterations++;
-        if (iterations > 1000) { return GraphSearchResult();};
+        if (iterations > 20000) { return GraphSearchResult();};
     }
     std::cout << "A* iterations: " << iterations << std::endl;
 
@@ -87,7 +91,7 @@ amp::MyAStarAlgo::GraphSearchResult amp::MyAStarAlgo::search(const amp::Shortest
 
 
         r++;
-        if (r > 1000) {std::cout << "Broke" << std::endl; return GraphSearchResult();};
+        if (r > 20000) {std::cout << "Broke" << std::endl; return GraphSearchResult();};
 
     }
 
@@ -96,16 +100,14 @@ amp::MyAStarAlgo::GraphSearchResult amp::MyAStarAlgo::search(const amp::Shortest
 
     int pathLength = path.size();
 
-    std::cout << "Path is: ";
     for (int k = 0; k < pathLength; k++){
         result.node_path.push_back(path[k]);
-        std::cout << path[k] << "->";
     }
     std::cout << std::endl;
 
     double cost  = processedList[lengthProcess-1].pathToNode;
     result.path_cost = cost;
-    std::cout << "Path cost is: " << cost << std::endl;
+    result.success = true;
     
     return result;
 }
